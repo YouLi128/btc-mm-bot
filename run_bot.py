@@ -51,12 +51,14 @@ async def main() -> None:
     initial_btc  = balances.get("BTC", 0.0)
     print(f"[init] USDT={initial_usdt:,.2f}  BTC={initial_btc:.4f}")
 
-    # Start inventory at 0 — treat existing BTC as collateral, not as market making position.
-    # The bot will accumulate inventory as orders fill.
-    tracker = PositionTracker(
+    from datetime import datetime, timezone
+    log_name = f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
+    tracker  = PositionTracker(
         initial_cash=initial_usdt,
         initial_inventory=0.0,
+        log_path=log_name,
     )
+    print(f"[bot] logging to {log_name}")
 
     # Active order IDs: {"bid": id, "ask": id}
     active_orders: dict = {}
@@ -118,6 +120,9 @@ async def main() -> None:
             except Exception as e:
                 print(f"  [warn] ask order failed: {e}")
 
+            # 6. Log quote to CSV
+            tracker.log_quote(mid, bid_px, ask_px)
+
             # 6. Periodic P&L log
             now = time.time()
             if now - last_log_time >= config.LOG_INTERVAL:
@@ -143,7 +148,7 @@ async def main() -> None:
         print("\n[bot] shutting down — cancelling open orders…")
         exchange.cancel_all_orders(config.SYMBOL)
         mid = feed.mid or 0
-        print(f"[bot] final  {tracker.summary(mid)}")
+        tracker.print_report(mid)
 
 
 if __name__ == "__main__":
