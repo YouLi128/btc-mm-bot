@@ -1,25 +1,28 @@
 """
-WebSocket book ticker feed — streams real-time best bid/ask from Binance Testnet.
+Book ticker feed via REST polling — Binance Testnet.
 
-Stream: wss://testnet.binance.vision/ws/{symbol}@bookTicker
-Message format: {"b": "best_bid", "a": "best_ask", "B": bid_qty, "A": ask_qty}
+Binance testnet WebSocket is not reliably available on spot testnet,
+so we poll the REST book ticker endpoint every second instead.
+The quote loop only requotes every QUOTE_INTERVAL seconds, so 1-second
+polling gives more than enough freshness.
 """
 
 import asyncio
-import json
-from typing import Callable, Optional
+from typing import Optional, Callable
 
-import websockets
+import requests
 
-TESTNET_WS = "wss://testnet.binance.vision/ws"
+TESTNET_REST = "https://testnet.binance.vision"
 
 
 class BookTicker:
-    def __init__(self, symbol: str):
-        self.symbol    = symbol.lower()
+    def __init__(self, symbol: str, poll_interval: float = 1.0):
+        self.symbol        = symbol.upper()
+        self.poll_interval = poll_interval
         self.best_bid: Optional[float] = None
         self.best_ask: Optional[float] = None
         self._callbacks: list[Callable] = []
+        self._session = requests.Session()
 
     def on_update(self, callback: Callable) -> None:
         self._callbacks.append(callback)
@@ -31,17 +34,17 @@ class BookTicker:
         return None
 
     async def run(self) -> None:
-        url = f"{TESTNET_WS}/{self.symbol}@bookTicker"
+        url = f"{TESTNET_REST}/api/v3/ticker/bookTicker"
+        print(f"[feed] polling {url} every {self.poll_interval}s")
         while True:
             try:
-                async with websockets.connect(url, ping_interval=20) as ws:
-                    print(f"[feed] connected to {url}")
-                    async for raw in ws:
-                        msg = json.loads(raw)
-                        self.best_bid = float(msg["b"])
-                        self.best_ask = float(msg["a"])
-                        for cb in self._callbacks:
-                            await cb(self.best_bid, self.best_ask)
+                resp = self._session.get(url, params={"symbol": self.symbol}, timeout=3)
+                resp.raise_for_status()
+                data = resp.json()
+                self.best_bid = float(data["bidPrice"])
+                self.best_ask = float(data["askPrice"])
+                for cb in self._callbacks:
+                    await cb(self.best_bid, self.best_ask)
             except Exception as e:
-                print(f"[feed] disconnected ({e}), reconnecting in 3s…")
-                await asyncio.sleep(3)
+                print(f"[feed] error: {e}")
+            await asyncio.sleep(self.poll_interval)

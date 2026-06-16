@@ -6,5 +6,5 @@ GAMMA         = 50.0         # AS inventory skew sensitivity ($/BTC)
 DELTA_0       = 45.0         # AS max additional half-spread at session start
 DELTA_MIN     = 5.0          # AS minimum half-spread
 SESSION_STEPS = 1440         # steps per session (reset inventory urgency)
-MAX_INVENTORY = 0.05         # hard inventory cap in BTC
+MAX_INVENTORY = 0.05         # hard inventory cap in BTC (relative to starting position)
 LOG_INTERVAL  = 30           # seconds between P&L log lines

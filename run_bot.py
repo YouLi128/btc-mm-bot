@@ -51,9 +51,11 @@ async def main() -> None:
     initial_btc  = balances.get("BTC", 0.0)
     print(f"[init] USDT={initial_usdt:,.2f}  BTC={initial_btc:.4f}")
 
+    # Start inventory at 0 — treat existing BTC as collateral, not as market making position.
+    # The bot will accumulate inventory as orders fill.
     tracker = PositionTracker(
         initial_cash=initial_usdt,
-        initial_inventory=initial_btc,
+        initial_inventory=0.0,
     )
 
     # Active order IDs: {"bid": id, "ask": id}
