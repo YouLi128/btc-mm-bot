@@ -1,0 +1,10 @@
+SYMBOL        = "BTCUSDT"
+LOT_SIZE      = 0.001        # BTC per order (Binance testnet min)
+QUOTE_INTERVAL = 5           # seconds between requotes
+DELTA         = 50.0         # baseline half-spread in USD
+GAMMA         = 50.0         # AS inventory skew sensitivity ($/BTC)
+DELTA_0       = 45.0         # AS max additional half-spread at session start
+DELTA_MIN     = 5.0          # AS minimum half-spread
+SESSION_STEPS = 1440         # steps per session (reset inventory urgency)
+MAX_INVENTORY = 0.05         # hard inventory cap in BTC
+LOG_INTERVAL  = 30           # seconds between P&L log lines
