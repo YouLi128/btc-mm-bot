@@ -13,6 +13,9 @@ from typing import Optional
 
 import requests
 
+_NETWORK_EXC = (requests.exceptions.ConnectionError, requests.exceptions.Timeout)
+_RETRY_DELAYS = (3, 10, 30)   # 断网后第1、2、3次重试等待秒数
+
 BASE_URL = "https://testnet.binance.vision"
 
 
@@ -32,19 +35,61 @@ class BinanceTestnet:
         return params
 
     def _get(self, path: str, params: dict = None) -> dict:
-        r = self._session.get(f"{BASE_URL}{path}", params=self._sign(params or {}))
-        r.raise_for_status()
-        return r.json()
+        last_exc: Exception = RuntimeError("no attempt made")
+        for i, delay in enumerate((0, *_RETRY_DELAYS)):
+            if delay:
+                print(f"  [net] GET {path} retry {i}/{len(_RETRY_DELAYS)} in {delay}s…")
+                time.sleep(delay)
+            try:
+                r = self._session.get(
+                    f"{BASE_URL}{path}",
+                    params=self._sign(dict(params or {})),
+                    timeout=10,
+                )
+                r.raise_for_status()
+                return r.json()
+            except _NETWORK_EXC as e:
+                last_exc = e
+                print(f"  [net] {e.__class__.__name__}: {e}")
+        raise last_exc
 
     def _post(self, path: str, params: dict) -> dict:
-        r = self._session.post(f"{BASE_URL}{path}", params=self._sign(params))
-        r.raise_for_status()
-        return r.json()
+        last_exc: Exception = RuntimeError("no attempt made")
+        for i, delay in enumerate((0, *_RETRY_DELAYS)):
+            if delay:
+                print(f"  [net] POST {path} retry {i}/{len(_RETRY_DELAYS)} in {delay}s…")
+                time.sleep(delay)
+            try:
+                r = self._session.post(
+                    f"{BASE_URL}{path}",
+                    params=self._sign(dict(params)),
+                    timeout=10,
+                )
+                r.raise_for_status()
+                return r.json()
+            except _NETWORK_EXC as e:
+                last_exc = e
+                print(f"  [net] {e.__class__.__name__}: {e}")
+        raise last_exc
 
     def _delete(self, path: str, params: dict) -> dict:
-        r = self._session.delete(f"{BASE_URL}{path}", params=self._sign(params))
-        r.raise_for_status()
-        return r.json()
+        last_exc: Exception = RuntimeError("no attempt made")
+        for i, delay in enumerate((0, *_RETRY_DELAYS)):
+            if delay:
+                print(f"  [net] DELETE {path} retry {i}/{len(_RETRY_DELAYS)} in {delay}s…")
+                time.sleep(delay)
+            try:
+                r = self._session.delete(
+                    f"{BASE_URL}{path}",
+                    params=self._sign(dict(params)),
+                    timeout=10,
+                )
+                r.raise_for_status()
+                return r.json()
+            except _NETWORK_EXC as e:
+                last_exc = e
+                print(f"  [net] {e.__class__.__name__}: {e}")
+        raise last_exc
 
     # ------------------------------------------------------------------
     def get_account(self) -> dict:
