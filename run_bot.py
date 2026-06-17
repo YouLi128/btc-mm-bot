@@ -14,7 +14,7 @@ Controls:
 import asyncio
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests
 from dotenv import load_dotenv
@@ -54,7 +54,6 @@ async def main() -> None:
     initial_btc  = balances.get("BTC", 0.0)
     print(f"[init] USDT={initial_usdt:,.2f}  BTC={initial_btc:.4f}")
 
-    from datetime import datetime, timezone
     log_name = f"session_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.csv"
     tracker  = PositionTracker(
         initial_cash=initial_usdt,
@@ -130,7 +129,7 @@ async def main() -> None:
                 # 7. Periodic P&L log
                 now = time.time()
                 if now - last_log_time >= config.LOG_INTERVAL:
-                    ts  = datetime.utcnow().strftime("%H:%M:%S")
+                    ts  = datetime.now(timezone.utc).strftime("%H:%M:%S")
                     tau = strategy.current_tau()
                     print(f"[{ts}] mid=${mid:,.2f}  bid=${bid_px:,.2f}  ask=${ask_px:,.2f}  "
                           f"τ={tau:.2f}  {tracker.summary(mid)}")
